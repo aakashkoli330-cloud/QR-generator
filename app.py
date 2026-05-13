@@ -41,12 +41,14 @@ def generate():
 
     factory = qrcode.image.svg.SvgPathImage
     img_svg = qr.make_image(image_factory=factory, fill_color=fg, back_color=bg)
-    svg_str = img_svg.to_string()
+    svg_bytes = img_svg.to_string()
+    if isinstance(svg_bytes, str):
+        svg_bytes = svg_bytes.encode("utf-8")
 
     key = uuid.uuid4().hex
     qr_store[key] = {
         "png": buf_png.getvalue(),
-        "svg": svg_str.encode("utf-8"),
+        "svg": svg_bytes,
         "text": text,
         "fg": fg,
         "bg": bg,
