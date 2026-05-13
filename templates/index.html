@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>QR Generator</h1>
+            <p class="subtitle">Enter text or URL to generate a QR code</p>
+
+            <form method="POST">
+                <div class="form-group">
+                    <label class="input-label" for="text">Text / URL</label>
+                    <input type="text" id="text" name="text" placeholder="e.g. https://example.com" autofocus>
+                </div>
+                <button type="submit" class="btn-generate">Generate QR Code</button>
+            </form>
+
+            {% if error %}
+            <p class="error">{{ error }}</p>
+            {% endif %}
+
+            {% if qr %}
+            <div class="qr-result">
+                <img src="data:image/png;base64,{{ qr }}" alt="QR Code">
+                <br>
+                <a href="/download/{{ key }}" class="btn-download">
+                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                    Download PNG
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        <p class="footer">built with Flask</p>
+    </div>
+</body>
+</html>
