@@ -11,39 +11,69 @@ qr_store = {}
 
 @app.route("/")
 def index():
-    return render_template("index.html", qr=None)
+    return render_template("index.html", qr=None, recent=[])
 
 
 @app.route("/", methods=["POST"])
 def generate():
     text = request.form.get("text", "").strip()
+    fg = request.form.get("fg", "#000000")
+    bg = request.form.get("bg", "#ffffff")
+    size = request.form.get("size", "md")
+
+    size_map = {"sm": 6, "md": 10, "lg": 14}
+    box_size = size_map.get(size, 10)
+
     if not text:
-        return render_template("index.html", qr=None, error="Please enter some text or URL.")
+        return render_template("index.html", qr=None, error="Please enter some text or URL.", recent=qr_store.get("_recent", []))
 
     import qrcode
-    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    import qrcode.image.svg
+
+    qr = qrcode.QRCode(version=1, box_size=box_size, border=4)
     qr.add_data(text)
     qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
 
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    buf.seek(0)
+    img = qr.make_image(fill_color=fg, back_color=bg)
+    buf_png = io.BytesIO()
+    img.save(buf_png, format="PNG")
+    buf_png.seek(0)
+
+    factory = qrcode.image.svg.SvgPathImage
+    img_svg = qr.make_image(image_factory=factory, fill_color=fg, back_color=bg)
+    svg_str = img_svg.to_string()
 
     key = uuid.uuid4().hex
-    qr_store[key] = buf.getvalue()
+    qr_store[key] = {
+        "png": buf_png.getvalue(),
+        "svg": svg_str.encode("utf-8"),
+        "text": text,
+        "fg": fg,
+        "bg": bg,
+    }
 
-    img_b64 = base64.b64encode(qr_store[key]).decode()
-    return render_template("index.html", qr=img_b64, key=key)
+    recent = qr_store.get("_recent", [])
+    recent.insert(0, {"text": text[:30], "key": key, "fg": fg, "bg": bg})
+    qr_store["_recent"] = recent[:5]
+
+    img_b64 = base64.b64encode(qr_store[key]["png"]).decode()
+    return render_template("index.html", qr=img_b64, key=key, recent=recent)
 
 
-@app.route("/download/<key>")
-def download(key):
+@app.route("/download/<key>/<fmt>")
+def download(key, fmt):
     data = qr_store.get(key)
     if not data:
         return "QR code not found or expired.", 404
+    if fmt == "svg":
+        return send_file(
+            io.BytesIO(data["svg"]),
+            mimetype="image/svg+xml",
+            as_attachment=True,
+            download_name="qrcode.svg"
+        )
     return send_file(
-        io.BytesIO(data),
+        io.BytesIO(data["png"]),
         mimetype="image/png",
         as_attachment=True,
         download_name="qrcode.png"

@@ -7,35 +7,147 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <h1>QR Generator</h1>
-            <p class="subtitle">Enter text or URL to generate a QR code</p>
-
-            <form method="POST">
-                <div class="form-group">
-                    <label class="input-label" for="text">Text / URL</label>
-                    <input type="text" id="text" name="text" placeholder="e.g. https://example.com" autofocus>
-                </div>
-                <button type="submit" class="btn-generate">Generate QR Code</button>
-            </form>
-
-            {% if error %}
-            <p class="error">{{ error }}</p>
-            {% endif %}
-
-            {% if qr %}
-            <div class="qr-result">
-                <img src="data:image/png;base64,{{ qr }}" alt="QR Code">
-                <br>
-                <a href="/download/{{ key }}" class="btn-download">
-                    <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-                    Download PNG
-                </a>
-            </div>
-            {% endif %}
+    <div class="page">
+        <div class="toolbar">
+            <span class="toolbar-title">QR Generator</span>
+            <span class="toolbar-badge">v1.0</span>
         </div>
-        <p class="footer">built with Flask</p>
+
+        <div class="layout">
+            <div class="panel panel-form">
+                <h2 class="panel-heading">Create QR Code</h2>
+                <form method="POST" id="qrForm">
+                    <div class="field">
+                        <label class="label" for="text">Text or URL</label>
+                        <input type="text" id="text" name="text" placeholder="https://example.com" autofocus>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Colors</label>
+                        <div class="color-row">
+                            <div class="color-group">
+                                <label class="color-label" for="fg">Dot</label>
+                                <input type="color" id="fg" name="fg" value="#000000">
+                            </div>
+                            <div class="color-group">
+                                <label class="color-label" for="bg">Background</label>
+                                <input type="color" id="bg" name="bg" value="#ffffff">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Size</label>
+                        <div class="size-row">
+                            <label class="size-option">
+                                <input type="radio" name="size" value="sm">
+                                <span>Small</span>
+                            </label>
+                            <label class="size-option">
+                                <input type="radio" name="size" value="md" checked>
+                                <span>Medium</span>
+                            </label>
+                            <label class="size-option">
+                                <input type="radio" name="size" value="lg">
+                                <span>Large</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Generate QR Code</button>
+                </form>
+            </div>
+
+            <div class="panel panel-result">
+                <h2 class="panel-heading">Result</h2>
+
+                {% if qr %}
+                <div class="qr-display">
+                    <img src="data:image/png;base64,{{ qr }}" alt="QR Code" id="qrImg">
+                </div>
+                <div class="actions">
+                    <a href="/download/{{ key }}/png" class="btn-action btn-png">Download PNG</a>
+                    <a href="/download/{{ key }}/svg" class="btn-action btn-svg">Download SVG</a>
+                    <button class="btn-action btn-copy" onclick="copyQR()">Copy Image</button>
+                </div>
+                <div id="toast"></div>
+                {% else %}
+                <div class="placeholder">
+                    <div class="placeholder-icon">
+                        <svg viewBox="0 0 24 24" width="48" height="48"><path d="M3 3h7v7H3V3zm11 0h7v7h-7V3zM3 14h7v7H3v-7zm11 0h7v7h-7v-7z" fill="currentColor" opacity="0.3"/></svg>
+                    </div>
+                    <p class="placeholder-text">Your QR code will appear here</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="steps">
+            <div class="step">
+                <span class="step-num">1</span>
+                <div>
+                    <strong>Enter content</strong>
+                    <p>Type any text or paste a URL</p>
+                </div>
+            </div>
+            <div class="step">
+                <span class="step-num">2</span>
+                <div>
+                    <strong>Customize</strong>
+                    <p>Pick colors and size to match your style</p>
+                </div>
+            </div>
+            <div class="step">
+                <span class="step-num">3</span>
+                <div>
+                    <strong>Download</strong>
+                    <p>Get your QR as PNG or SVG</p>
+                </div>
+            </div>
+        </div>
+
+        {% if recent and recent|length > 0 %}
+        <div class="recent">
+            <h3 class="recent-heading">Recent</h3>
+            <div class="recent-list">
+                {% for item in recent %}
+                <div class="recent-item">
+                    <span class="recent-text">{{ item.text }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <p class="footer">built with Flask &middot; <a href="https://github.com/aakashkoli330-cloud/QR-generator">GitHub</a></p>
     </div>
+
+    <script>
+    function copyQR() {
+        var img = document.getElementById("qrImg");
+        var toast = document.getElementById("toast");
+        if (!img) return;
+
+        var canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+
+        canvas.toBlob(function(blob) {
+            navigator.clipboard.write([
+                new ClipboardItem({ "image/png": blob })
+            ]).then(function() {
+                toast.textContent = "Copied!";
+                toast.className = "toast show";
+                setTimeout(function() { toast.className = "toast"; }, 2000);
+            }).catch(function() {
+                toast.textContent = "Failed to copy";
+                toast.className = "toast show error";
+                setTimeout(function() { toast.className = "toast"; }, 2000);
+            });
+        });
+    }
+    </script>
 </body>
 </html>
