@@ -18,7 +18,7 @@ It's designed for developers, designers, small business owners, and anyone who n
 - Recent history of generated codes (last 5)
 - Clean tool-like UI with two-column layout
 - Responsive design (works on mobile)
-- Deployed live at [qr-generator-e5x5.onrender.com](https://qr-generator-e5x5.onrender.com)
+- Deployed live at [qr-generator-e5x5.onrender.com](https://qr-generator-swov.onrender.com)
 
 ## Tech Stack
 
